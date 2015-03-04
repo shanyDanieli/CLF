@@ -183,7 +183,7 @@ pos_sat = np.asarray(pos_sat)
 # logaritmic bins for L
 L_min = 8.5
 L_max = 11.5		
-dL = 0.08
+dL = 0.1
 
 L_bins = np.linspace(L_min,L_max,(L_max-L_min)/dL)
 
@@ -193,8 +193,8 @@ print L_bins
 # Getting host halo mass bin from user
 #Mhost_min = input("Hello! Please enter the lower limit of the mass bin in logarithmic scale: ")
 #Mhost_max = input("Now, enter the upper limit of the mass bin in logarithmic scale: ")
-Mhost_min = 12.7
-Mhost_max = 13.0
+Mhost_min = 13.1
+Mhost_max = 13.4
 print "\n"
 print "Plotting the Conditional Luminosity Function..."
 
@@ -227,13 +227,13 @@ Fit the CLF model - Central Galaxies
 """
 
 def peval(x_lum,p):
-	M = 10**12.85
+	M = 10**13.25
 	x_lum = np.asarray(x_lum)
 	x_lc = p[0]+ p[2]*(log(M,10)-p[1])-(p[2]-p[3])*log(1+(M/(10**p[1])),10)
 	return (1/(sqrt(2*pi)*p[4])*np.exp(-((x_lum-x_lc)/(sqrt(2)*p[4]))**2))
 
 def residuals_c(p,y,x_lum,errors):
-	M = 10**12.85
+	M = 10**13.25
 #    M = input("Enter the mid value of the host halo mass bin once more please: ")
 	logL0,logM1,gamma1,gamma2,sigma_c = p
 	x_lc = logL0+ gamma1*(log(M,10)-logM1)-(gamma1-gamma2)*log(1+(M/(10**logM1)),10)
@@ -258,23 +258,23 @@ y_observed = np.asarray(y_cen)
 y_expected = np.asarray(peval(x_cen, plsq[0]))
 y_expected = np.asarray([log(i,10) for i in y_expected])
 sigma2 = np.asarray(yerr_cen)**2
-chi2 = np.sum((y_observed-y_expected)**2/sigma2)/(len(y_observed)-6)
+chi2_cen = np.sum((y_observed-y_expected)**2/sigma2)/(len(y_observed)-6)
 print "chi2 for central galaxies CLF fit:"
-print chi2
+print chi2_cen
 
 
 """
 Fit the CLF model - Satellite Galaxies
 """
 
-M = 10**12.85
+M = 10**13.25
 x_lc = fitted_para_cen[0]+ fitted_para_cen[2]*(log(M,10)-fitted_para_cen[1])-(fitted_para_cen[2]-fitted_para_cen[3])*log(1+(M/(10**fitted_para_cen[1])),10)
 Lc = 10**x_lc
 Ls = 0.562*Lc 
 
 
 def peval_sat(x_lum,p): # still need to modify
-	M = 10**12.85
+	M = 10**13.25
 	logM12 = log(M,10)-12.0
 	phi_s = 10**(p[0]+p[1]*logM12+p[2]*logM12**2)
 	Lrat = 10**np.asarray(x_lum)/np.asarray(Ls)
@@ -283,7 +283,7 @@ def peval_sat(x_lum,p): # still need to modify
 
 # Fitting the CLF for central galaxies
 def residuals_sat(p,y,x_lum,errors):
-	M = 10**12.85
+	M = 10**13.25
 	b0,b1,b2,alpha_sat = p
 	logM12 = log(M,10)-12.0
 	phi_s = 10**(b0+b1*logM12+b2*logM12**2)
@@ -310,9 +310,9 @@ y_observed = np.asarray(y_sat)
 y_expected = np.asarray(peval_sat(x_sat, plsq_sat[0]))
 y_expected = np.asarray([log(i,10) for i in y_expected])
 sigma2 = np.asarray(yerr_sat)**2
-chi2 = np.sum((y_observed-y_expected)**2/sigma2)/(len(y_observed)-5)
+chi2_sat = np.sum((y_observed-y_expected)**2/sigma2)/(len(y_observed)-5)
 print "chi2 for satellite galaxies CLF fit:"
-print chi2
+print chi2_sat
 
 
 
@@ -322,23 +322,24 @@ Fit the CLF model - Satellite Galaxies
 
 label = str(Mhost_min)+r'$ < M_{h}  \leq $' + str(Mhost_max)
 
-plt.errorbar(x_cen,y_cen, yerr=yerr_cen, capsize=4, ls='none', color='red', elinewidth=2,marker='o',markerfacecolor='none')
-x_fit_cen = np.arange(x_cen[-len(x_cen)]-0.2,x_cen[-1]+0.2,0.05)
+plot_cen = plt.errorbar(x_cen,y_cen, yerr=yerr_cen, capsize=4, ls='none', color='red', elinewidth=2,marker='o',markerfacecolor='red')
+x_fit_cen = np.arange(x_cen[-len(x_cen)]-0.1,x_cen[-1]+0.1,0.05)
 y_fit_plot_cen = [log(n,10) for n in peval(x_fit_cen, plsq[0])]
-plt.plot(x_fit_cen,y_fit_plot_cen)
+plt.plot(x_fit_cen,y_fit_plot_cen,color='black')
 
 
 
-plt.errorbar(x_sat,y_sat, yerr=yerr_sat, capsize=4, ls='none', color='blue', elinewidth=2,marker='o',markerfacecolor='none')
-x_fit_sat = np.arange(x_sat[-len(x_sat)]-0.05,x_sat[-1],0.05)
+plot_sat = plt.errorbar(x_sat,y_sat, yerr=yerr_sat, capsize=4, ls='none', color='blue', elinewidth=2,marker='s',markerfacecolor='blue')
+x_fit_sat = np.arange(x_sat[-len(x_sat)]-0.1,x_sat[-1]+0.1,0.05)
 y_fit_plot_sat = [log(n,10) for n in peval_sat(x_fit_sat, plsq_sat[0])]
-plt.plot(x_fit_sat,y_fit_plot_sat)
+plt.plot(x_fit_sat,y_fit_plot_sat,color='black')
 
 
-plt.xlim(8.5, 11.5)
+plt.xlim(7.5, 12)
 plt.xlabel(r'$\log[L/(h^{-2}L_{\bigodot})])$',fontsize=15)
 plt.ylabel(r'$\log(\Phi(L) d\log L / group)$',fontsize=15)
 plt.title(label)
+plt.legend([plot_cen,plot_sat],[r'$\chi_{cen}^{2}=$'+str(round(chi2_cen,3)), r'$\chi_{sat}^{2}$='+str(round(chi2_sat,3))], loc='upper left')
 plt.show()
 
 
