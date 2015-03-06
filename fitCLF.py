@@ -19,7 +19,7 @@ import random
 ##########################################################################################
 
 
-def CLF(M,L_bins,dL,Mhostmin,Mhost_max,Mhost):
+def CLF(M,L_bins,dL,Mhost_min,Mhost_max,Mhost):
     """
     Calculate the galaxy conditional luminosity function (CLF).
     
@@ -121,6 +121,8 @@ def jackknife_errors_CLF(pos,Phi,Ndivs,Lbox,M,L_bins,dL,Mhost_min,Mhost_max,Mhos
                     M_sub_sample.append(M[i]) # then add to sub-box list
                     Mhost_sub_sample.append(Mhost[i])
         CLF_sub,L_bins = CLF(M_sub_sample,L_bins,dL,Mhost_min,Mhost_max,Mhost_sub_sample)
+#        print "CLF for sub-samples:"
+#        print CLF_sub
         CLF_all.append(CLF_sub)
         M_sub_sample = []
         Mhost_sub_sample = []
@@ -135,11 +137,35 @@ def jackknife_errors_CLF(pos,Phi,Ndivs,Lbox,M,L_bins,dL,Mhost_min,Mhost_max,Mhos
     return errors
 
 
-
 # General useful quantities
 Lbox = 250.0
 Vbox = Lbox**3
 Ndivs = 5
+
+
+def compute_CLF_jackknife(L_bins,dL,M_cen,Mhost_min,Mhost_max,Mhost_cen):
+	M = 10**((Mhost_max+Mhost_min)/2)
+	Phi_cen,L_bins = CLF(M_cen,L_bins,dL,Mhost_min,Mhost_max,Mhost_cen)
+	errors = jackknife_errors_CLF(pos_cen,Phi_cen,Ndivs,Lbox,M_cen,L_bins,dL,Mhost_min,Mhost_max,Mhost_cen)
+	y_cen = [log(i,10) for i in Phi_cen if i>0]
+	x_cen = [L_bins[i]+dL/2 for i in range(len(L_bins)-1) if Phi_cen[i]>0]
+	delta_y_cen = [errors[i] for i in range(len(L_bins)-1) if Phi_cen[i]>0]
+	yerr_cen = [i/(10**j) for i,j in zip(delta_y_cen,y_cen)]
+	
+	return x_cen,y_cen,yerr_cen 
+	
+	
+def compute_CLF_jackknife_sat(L_bins,dL,M_sat,Mhost_min,Mhost_max,Mhost_sat):
+	M = 10**((Mhost_max+Mhost_min)/2)
+	Phi_sat,L_bins = CLF(M_sat,L_bins,dL,Mhost_min,Mhost_max,Mhost_sat)
+	errors = jackknife_errors_CLF(pos_sat,Phi_sat,Ndivs,Lbox,M_sat,L_bins,dL,Mhost_min,Mhost_max,Mhost_sat)
+	y_sat = [log(i,10) for i in Phi_sat if i>0]
+	x_sat = [L_bins[i]+dL/2 for i in range(len(L_bins)-1) if Phi_sat[i]>0]
+	delta_y_sat = [errors[i] for i in range(len(L_bins)-1) if Phi_sat[i]>0]
+	yerr_sat = [i/(10**j) for i,j in zip(delta_y_sat,y_sat)]	
+	return x_sat,y_sat,yerr_sat
+
+
 
 """
 Data processing 
@@ -181,7 +207,7 @@ pos_cen = np.asarray(pos_cen)
 pos_sat = np.asarray(pos_sat)
 
 # logaritmic bins for L
-L_min = 8.5
+L_min = 9.5	
 L_max = 11.5		
 dL = 0.1
 
@@ -190,55 +216,43 @@ L_bins = np.linspace(L_min,L_max,(L_max-L_min)/dL)
 print "L_bins:"
 print L_bins
 
-# Getting host halo mass bin from user
-#Mhost_min = input("Hello! Please enter the lower limit of the mass bin in logarithmic scale: ")
-#Mhost_max = input("Now, enter the upper limit of the mass bin in logarithmic scale: ")
-Mhost_min = 13.1
-Mhost_max = 13.4
-print "\n"
-print "Plotting the Conditional Luminosity Function..."
-
-
 
 """
-CLF and Jackknife computation 
+Calculate the CLF for central galaxies and its Jackknife errors for 6 different halo mass bins
 """
 
-# Computing the CLF and its Jackknife errors - Central galaxies
-Phi_cen,L_bins = CLF(M_cen,L_bins,dL,Mhost_min,Mhost_max,Mhost_cen)
-errors = jackknife_errors_CLF(pos_cen,Phi_cen,Ndivs,Lbox,M_cen,L_bins,dL,Mhost_min,Mhost_max,Mhost_cen)
-y_cen = [log(i,10) for i in Phi_cen if i>0]
-x_cen = [L_bins[i]+dL/2 for i in range(len(L_bins)-1) if Phi_cen[i]>0]
-delta_y_cen = [errors[i] for i in range(len(L_bins)-1) if Phi_cen[i]>0]
-yerr_cen = [i/(10**j) for i,j in zip(delta_y_cen,y_cen)]
+"""
+x_cen_1,y_cen_1,yerr_cen_1 = compute_CLF_jackknife(L_bins,dL,M_cen,12.1,12.4,Mhost_cen)
+x_cen_2,y_cen_2,yerr_cen_2 = compute_CLF_jackknife(L_bins,dL,M_cen,12.5,12.8,Mhost_cen)
+x_cen_3,y_cen_3,yerr_cen_3 = compute_CLF_jackknife(L_bins,dL,M_cen,12.9,13.2,Mhost_cen)
+x_cen_4,y_cen_4,yerr_cen_4 = compute_CLF_jackknife(L_bins,dL,M_cen,13.3,13.6,Mhost_cen)
+x_cen_5,y_cen_5,yerr_cen_5 = compute_CLF_jackknife(L_bins,dL,M_cen,13.7,14.0,Mhost_cen)
+x_cen_6,y_cen_6,yerr_cen_6 = compute_CLF_jackknife(L_bins,dL,M_cen,14.1,14.4,Mhost_cen)
 
-# Computing the CLF and its Jackknife errors - Satellite galaxies
-Phi_sat,L_bins = CLF(M_sat,L_bins,dL,Mhost_min,Mhost_max,Mhost_sat)
-errors = jackknife_errors_CLF(pos_sat,Phi_sat,Ndivs,Lbox,M_sat,L_bins,dL,Mhost_min,Mhost_max,Mhost_sat)
-y_sat = [log(i,10) for i in Phi_sat if i>0]
-x_sat = [L_bins[i]+dL/2 for i in range(len(L_bins)-1) if Phi_sat[i]>0]
-delta_y_sat = [errors[i] for i in range(len(L_bins)-1) if Phi_sat[i]>0]
-yerr_sat = [i/(10**j) for i,j in zip(delta_y_sat,y_sat)]
-    
+x_cen = x_cen_1 + x_cen_2 + x_cen_3 + x_cen_4 +x_cen_5 + x_cen_6
+y_cen = y_cen_1 + y_cen_2 + y_cen_3 + y_cen_4 +y_cen_5 + y_cen_6
+yerr_cen = yerr_cen_1 + yerr_cen_2 + yerr_cen_3 + yerr_cen_4 + yerr_cen_5 + yerr_cen_6
 
+Mass_bins = [10**12.25 for i in range(len(x_cen_1))]+[10**12.65 for i in range(len(x_cen_2))]+[10**13.05 for i in range(len(x_cen_3))]+[10**13.45 for i in range(len(x_cen_4))]+[10**13.85 for i in range(len(x_cen_5))]+[10**14.25 for i in range(len(x_cen_6))]
+"""
 
 """
 Fit the CLF model - Central Galaxies
 """
+"""
 
-def peval(x_lum,p):
-	M = 10**13.25
+def peval(x_lum,p,M):
 	x_lum = np.asarray(x_lum)
 	x_lc = p[0]+ p[2]*(log(M,10)-p[1])-(p[2]-p[3])*log(1+(M/(10**p[1])),10)
-	return (1/(sqrt(2*pi)*p[4])*np.exp(-((x_lum-x_lc)/(sqrt(2)*p[4]))**2))
+	clf = (1/(sqrt(2*pi)*p[4])*np.exp(-((x_lum-x_lc)/(sqrt(2)*p[4]))**2))
+	return clf
 
-def residuals_c(p,y,x_lum,errors):
-	M = 10**13.25
-#    M = input("Enter the mid value of the host halo mass bin once more please: ")
-	logL0,logM1,gamma1,gamma2,sigma_c = p
-	x_lc = logL0+ gamma1*(log(M,10)-logM1)-(gamma1-gamma2)*log(1+(M/(10**logM1)),10)
+def residuals_cen(p,y,x_lum,errors,M):
 	x_lum = np.asarray(x_lum)
 	y = np.asarray(y)
+	M = np.asarray(M)
+	logL0,logM1,gamma1,gamma2,sigma_c = p
+	x_lc = logL0+ gamma1*(np.log10(M)-logM1)-(gamma1-gamma2)*np.log10(1+(M/(10**logM1)))
 	clf = (1/(sqrt(2*pi)*sigma_c)*np.exp(-((x_lum-x_lc)/(sqrt(2)*sigma_c))**2))
 	delta = 10**-10
 	err = (np.asarray([log(k+delta,10) for k in y]) - np.asarray([log(p+delta,10) for p in clf]))/errors
@@ -247,104 +261,335 @@ def residuals_c(p,y,x_lum,errors):
 p0 = [9.9,11.0,3.0,0.3,0.15] # Initial values
 
 y = [10**i for i in y_cen]
-plsq = leastsq(residuals_c, p0, args=(y, x_cen,yerr_cen))
+
+
+plsq = leastsq(residuals_cen, p0, args=(y, x_cen,yerr_cen,Mass_bins))
 print "The parameters from the fit for the centrals galaxies are:"
 print plsq[0]
 print "\n"
 fitted_para_cen = plsq[0]
 
+
+
 # Calculating Chi Square
+
+x_lc = fitted_para_cen[0]+ fitted_para_cen[2]*(np.log10(Mass_bins)-fitted_para_cen[1])-(fitted_para_cen[2]-fitted_para_cen[3])*np.log10(1+(Mass_bins/(10**fitted_para_cen[1])))
+clf_cen = (1/(sqrt(2*pi)*fitted_para_cen[4])*np.exp(-((x_cen-x_lc)/(sqrt(2)*fitted_para_cen[4]))**2))
+
+
 y_observed = np.asarray(y_cen)
-y_expected = np.asarray(peval(x_cen, plsq[0]))
-y_expected = np.asarray([log(i,10) for i in y_expected])
+y_expected = np.asarray([log(i,10) for i in clf_cen])
+#y_expected = np.asarray(peval(x_cen, plsq[0],M))
+#y_expected = np.asarray([log(i,10) for i in y_expected])
 sigma2 = np.asarray(yerr_cen)**2
 chi2_cen = np.sum((y_observed-y_expected)**2/sigma2)/(len(y_observed)-6)
 print "chi2 for central galaxies CLF fit:"
 print chi2_cen
+print "\n"
+
+
+
+
+
+label = '12.1'+r'$ < M_{h}  \leq $' + '12.4'
+plt.errorbar(x_cen_1,y_cen_1, yerr=yerr_cen_1, capsize=4, ls='none', color='red', elinewidth=2,marker='o',markerfacecolor='red')
+x_fit_cen_1 = np.arange(x_cen_1[-len(x_cen_1)]-0.1,x_cen_1[-1]+0.1,0.05)
+y_fit_plot_cen = [log(n,10) for n in peval(x_fit_cen_1, fitted_para_cen,10**12.25)]
+plt.plot(x_fit_cen_1,y_fit_plot_cen,color='black')
+plt.xlim(7.5, 12)
+plt.xlabel(r'$\log[L/(h^{-2}L_{\bigodot})])$',fontsize=15)
+plt.ylabel(r'$\log(\Phi(L) d\log L / group)$',fontsize=15)
+plt.title(label)
+plt.savefig('plots/clf_cen_fit_bin1.png')
+plt.close() 
+
+
+
+label = '12.5'+r'$ < M_{h}  \leq $' + '12.8'
+plt.errorbar(x_cen_2,y_cen_2, yerr=yerr_cen_2, capsize=4, ls='none', color='red', elinewidth=2,marker='o',markerfacecolor='red')
+x_fit_cen_2 = np.arange(x_cen_2[-len(x_cen_2)]-0.1,x_cen_2[-1]+0.1,0.05)
+y_fit_plot_cen = [log(n,10) for n in peval(x_fit_cen_2, fitted_para_cen,10**12.65)]
+plt.plot(x_fit_cen_2,y_fit_plot_cen,color='black')
+plt.xlim(7.5, 12)
+plt.xlabel(r'$\log[L/(h^{-2}L_{\bigodot})])$',fontsize=15)
+plt.ylabel(r'$\log(\Phi(L) d\log L / group)$',fontsize=15)
+plt.title(label)
+plt.savefig('plots/clf_cen_fit_bin2.png')
+plt.close() 
+
+
+
+label = '12.9'+r'$ < M_{h}  \leq $' + '13.2'
+plt.errorbar(x_cen_3,y_cen_3, yerr=yerr_cen_3, capsize=4, ls='none', color='red', elinewidth=2,marker='o',markerfacecolor='red')
+x_fit_cen_3 = np.arange(x_cen_3[-len(x_cen_3)]-0.1,x_cen_3[-1]+0.1,0.05)
+y_fit_plot_cen = [log(n,10) for n in peval(x_fit_cen_3, fitted_para_cen,10**13.05)]
+plt.plot(x_fit_cen_3,y_fit_plot_cen,color='black')
+plt.xlim(7.5, 12)
+plt.xlabel(r'$\log[L/(h^{-2}L_{\bigodot})])$',fontsize=15)
+plt.ylabel(r'$\log(\Phi(L) d\log L / group)$',fontsize=15)
+plt.title(label)
+plt.savefig('plots/clf_cen_fit_bin3.png')
+plt.close() 
+
+label = '13.3'+r'$ < M_{h}  \leq $' + '13.6'
+plt.errorbar(x_cen_4,y_cen_4, yerr=yerr_cen_4, capsize=4, ls='none', color='red', elinewidth=2,marker='o',markerfacecolor='red')
+x_fit_cen_4 = np.arange(x_cen_4[-len(x_cen_4)]-0.1,x_cen_4[-1]+0.1,0.05)
+y_fit_plot_cen = [log(n,10) for n in peval(x_fit_cen_4, fitted_para_cen,10**13.45)]
+plt.plot(x_fit_cen_4,y_fit_plot_cen,color='black')
+plt.xlim(7.5, 12)
+plt.xlabel(r'$\log[L/(h^{-2}L_{\bigodot})])$',fontsize=15)
+plt.ylabel(r'$\log(\Phi(L) d\log L / group)$',fontsize=15)
+plt.title(label)
+plt.savefig('plots/clf_cen_fit_bin4.png')
+plt.close() 
+	
+label = '13.7'+r'$ < M_{h}  \leq $' + '14.0'
+plt.errorbar(x_cen_5,y_cen_5, yerr=yerr_cen_5, capsize=5, ls='none', color='red', elinewidth=2,marker='o',markerfacecolor='red')
+x_fit_cen_5 = np.arange(x_cen_5[-len(x_cen_5)]-0.1,x_cen_5[-1]+0.1,0.05)
+y_fit_plot_cen = [log(n,10) for n in peval(x_fit_cen_5, fitted_para_cen,10**13.85)]
+plt.plot(x_fit_cen_5,y_fit_plot_cen,color='black')
+plt.xlim(7.5, 12)
+plt.xlabel(r'$\log[L/(h^{-2}L_{\bigodot})])$',fontsize=15)
+plt.ylabel(r'$\log(\Phi(L) d\log L / group)$',fontsize=15)
+plt.title(label)
+plt.savefig('plots/clf_cen_fit_bin5.png')
+plt.close() 
+
+label = '14.1'+r'$ < M_{h}  \leq $' + '14.4'
+plt.errorbar(x_cen_6,y_cen_6, yerr=yerr_cen_6, capsize=5, ls='none', color='red', elinewidth=2,marker='o',markerfacecolor='red')
+x_fit_cen_6 = np.arange(x_cen_6[-len(x_cen_6)]-0.1,x_cen_6[-1]+0.1,0.05)
+y_fit_plot_cen = [log(n,10) for n in peval(x_fit_cen_6, fitted_para_cen,10**14.25)]
+plt.plot(x_fit_cen_6,y_fit_plot_cen,color='black')
+plt.xlim(7.5, 12)
+plt.xlabel(r'$\log[L/(h^{-2}L_{\bigodot})])$',fontsize=15)
+plt.ylabel(r'$\log(\Phi(L) d\log L / group)$',fontsize=15)
+plt.title(label)
+plt.savefig('plots/clf_cen_fit_bin6.png')
+plt.close() 
+"""
+
+fitted_para_cen = [ 10.27206525 , 12.40443089 ,  0.64053441 ,  0.17845333 ,  0.18709539]
+
+
+
+"""
+Calculate the CLF for satellite galaxies and its Jackknife errors for 6 different halo mass bins
+"""
+
+x_sat_1,y_sat_1,yerr_sat_1 = compute_CLF_jackknife_sat(L_bins,dL,M_sat,12.1,12.4,Mhost_sat)
+x_sat_2,y_sat_2,yerr_sat_2 = compute_CLF_jackknife_sat(L_bins,dL,M_sat,12.5,12.8,Mhost_sat)
+x_sat_3,y_sat_3,yerr_sat_3 = compute_CLF_jackknife_sat(L_bins,dL,M_sat,12.9,13.2,Mhost_sat)
+x_sat_4,y_sat_4,yerr_sat_4 = compute_CLF_jackknife_sat(L_bins,dL,M_sat,13.3,13.6,Mhost_sat)
+x_sat_5,y_sat_5,yerr_sat_5 = compute_CLF_jackknife_sat(L_bins,dL,M_sat,13.7,14.0,Mhost_sat)
+x_sat_6,y_sat_6,yerr_sat_6 = compute_CLF_jackknife_sat(L_bins,dL,M_sat,14.1,14.4,Mhost_sat)
+
+x_sat = x_sat_1 + x_sat_2 + x_sat_3 + x_sat_4 +x_sat_5 + x_sat_6
+y_sat = y_sat_1 + y_sat_2 + y_sat_3 + y_sat_4 +y_sat_5 + y_sat_6
+yerr_sat = yerr_sat_1 + yerr_sat_2 + yerr_sat_3 + yerr_sat_4 + yerr_sat_5 + yerr_sat_6
+
+print "The length of x_sat:"
+print len(x_sat)
+print "\n"
+
+
+Mass_bins_sat = [10**12.25 for i in range(len(x_sat_1))]+[10**12.65 for i in range(len(x_sat_2))]+[10**13.05 for i in range(len(x_sat_3))]+[10**13.45 for i in range(len(x_sat_4))]+[10**13.85 for i in range(len(x_sat_5))]+[10**14.25 for i in range(len(x_sat_6))]
+
 
 
 """
 Fit the CLF model - Satellite Galaxies
 """
-
-M = 10**13.25
-x_lc = fitted_para_cen[0]+ fitted_para_cen[2]*(log(M,10)-fitted_para_cen[1])-(fitted_para_cen[2]-fitted_para_cen[3])*log(1+(M/(10**fitted_para_cen[1])),10)
+x_lc = fitted_para_cen[0]+ fitted_para_cen[2]*(np.log10(np.asarray(Mass_bins_sat))-fitted_para_cen[1])-(fitted_para_cen[2]-fitted_para_cen[3])*np.log10(1+(np.asarray(Mass_bins_sat)/(10**fitted_para_cen[1])))
 Lc = 10**x_lc
 Ls = 0.562*Lc 
+print "Ls:"
+print Ls
 
 
-def peval_sat(x_lum,p): # still need to modify
-	M = 10**13.25
+def peval_sat(x_lum,p_sat,p_cen,M): # still need to modify
 	logM12 = log(M,10)-12.0
-	phi_s = 10**(p[0]+p[1]*logM12+p[2]*logM12**2)
-	Lrat = 10**np.asarray(x_lum)/np.asarray(Ls)
-#    print log(10,e)*phi_s*Lrat**(p[3]+1)*np.exp(-Lrat**2)
-	return log(10,e)*phi_s*Lrat**(p[3]+1)*np.exp(-Lrat**2)
+	phi_s = 10**(p_sat[0]+p_sat[1]*logM12+p_sat[2]*logM12**2)
+	x_lc = p_cen[0]+ p_cen[2]*(np.log10(np.asarray(M))-p_cen[1])-(p_cen[2]-p_cen[3])*np.log10(1+(np.asarray(M)/(10**p_cen[1])))
+	Lc = 10**x_lc
+	Ls = 0.562*Lc 
+	Lrat = 10**np.asarray(x_lum)/Ls
+	return log(10,e)*phi_s*Lrat**(p_sat[3]+1)*np.exp(-Lrat**2)
+#	return log(10,e)*phi_s*Lrat**(p_sat[3]+1)*np.exp(-Lrat)
 
-# Fitting the CLF for central galaxies
-def residuals_sat(p,y,x_lum,errors):
-	M = 10**13.25
+
+# Fitting the CLF for satellite galaxies
+def residuals_sat(p,y,x_lum,errors,M):
 	b0,b1,b2,alpha_sat = p
-	logM12 = log(M,10)-12.0
+	logM12 = np.log10(M)-12.0
 	phi_s = 10**(b0+b1*logM12+b2*logM12**2)
 	Lrat = 10**np.asarray(x_lum)/np.asarray(Ls)
 	#x_lum = np.asarray(x_lum)
 	y = np.asarray(y)
 	clf = log(10,e)*phi_s*(Lrat**(alpha_sat+1))*np.exp(-Lrat**2)
+#	clf = log(10,e)*phi_s*(Lrat**(alpha_sat+1))*np.exp(-Lrat)
 	err = (np.asarray([log(k,10) for k in y]) - np.asarray([log(p,10) for p in clf]))/errors
 	#err = np.asarray([log(k+delta,10) for k in y]) - np.asarray([log(p+delta,10) for p in clf])
 	return err
 
 
-p0_sat = [-1.0,2.0,-0.5,-0.5] # Initial values
+p0_sat = [-1.0,2.0,-0.5,-0.5] # Initial values for [b0,b1,b2,alpha_sat]
 
 y = [10**j for j in y_sat]
 
-plsq_sat = leastsq(residuals_sat, p0_sat, args=(y, x_sat,yerr_sat))
+plsq_sat = leastsq(residuals_sat, p0_sat, args=(y, x_sat,yerr_sat,Mass_bins_sat))
 print "The parameters from the fit for the satellite galaxies:"
 print plsq_sat[0]
+fitted_para_sat = plsq_sat[0]
 print "\n"
 
+
+
 # Calculating Chi Square
+
+logM12 = np.log10(Mass_bins_sat)-12.0
+phi_s = 10**(fitted_para_sat[0]+fitted_para_sat[1]*logM12+fitted_para_sat[2]*logM12**2)
+Lrat = 10**np.asarray(x_sat)/np.asarray(Ls)
+clf_sat = log(10,e)*phi_s*(Lrat**(fitted_para_sat[3]+1))*np.exp(-Lrat**2)
+
 y_observed = np.asarray(y_sat)
-y_expected = np.asarray(peval_sat(x_sat, plsq_sat[0]))
-y_expected = np.asarray([log(i,10) for i in y_expected])
+y_expected = np.asarray([log(i,10) for i in clf_sat])
 sigma2 = np.asarray(yerr_sat)**2
 chi2_sat = np.sum((y_observed-y_expected)**2/sigma2)/(len(y_observed)-5)
 print "chi2 for satellite galaxies CLF fit:"
 print chi2_sat
+print "\n"
 
-
-
-"""
-Fit the CLF model - Satellite Galaxies
-"""
-
-label = str(Mhost_min)+r'$ < M_{h}  \leq $' + str(Mhost_max)
-
-plot_cen = plt.errorbar(x_cen,y_cen, yerr=yerr_cen, capsize=4, ls='none', color='red', elinewidth=2,marker='o',markerfacecolor='red')
-x_fit_cen = np.arange(x_cen[-len(x_cen)]-0.1,x_cen[-1]+0.1,0.05)
-y_fit_plot_cen = [log(n,10) for n in peval(x_fit_cen, plsq[0])]
-plt.plot(x_fit_cen,y_fit_plot_cen,color='black')
-
-
-
-plot_sat = plt.errorbar(x_sat,y_sat, yerr=yerr_sat, capsize=4, ls='none', color='blue', elinewidth=2,marker='s',markerfacecolor='blue')
-x_fit_sat = np.arange(x_sat[-len(x_sat)]-0.1,x_sat[-1]+0.1,0.05)
-y_fit_plot_sat = [log(n,10) for n in peval_sat(x_fit_sat, plsq_sat[0])]
-plt.plot(x_fit_sat,y_fit_plot_sat,color='black')
-
-
+label = '12.1'+r'$ < M_{h}  \leq $' + '12.4'
+plt.errorbar(x_sat_1,y_sat_1, yerr=yerr_sat_1, capsize=4, ls='none', color='red', elinewidth=2,marker='o',markerfacecolor='red')
+x_fit_sat_1 = np.arange(x_sat_1[-len(x_sat_1)]-0.1,x_sat_1[-1]+0.1,0.05)
+y_fit_plot_sat = [log(n,10) for n in peval_sat(x_fit_sat_1, fitted_para_sat,fitted_para_cen,10**12.25)]
+plt.plot(x_fit_sat_1,y_fit_plot_sat,color='black')
 plt.xlim(7.5, 12)
 plt.xlabel(r'$\log[L/(h^{-2}L_{\bigodot})])$',fontsize=15)
 plt.ylabel(r'$\log(\Phi(L) d\log L / group)$',fontsize=15)
 plt.title(label)
-plt.legend([plot_cen,plot_sat],[r'$\chi_{cen}^{2}=$'+str(round(chi2_cen,3)), r'$\chi_{sat}^{2}$='+str(round(chi2_sat,3))], loc='upper left')
+plt.savefig('plots/clf_sat_fit_bin1.png')
+plt.close()
+
+label = '12.5'+r'$ < M_{h}  \leq $' + '12.8'
+plt.errorbar(x_sat_2,y_sat_2, yerr=yerr_sat_2, capsize=4, ls='none', color='red', elinewidth=2,marker='o',markerfacecolor='red')
+x_fit_sat_2 = np.arange(x_sat_2[-len(x_sat_2)]-0.1,x_sat_2[-1]+0.1,0.05)
+y_fit_plot_sat = [log(n,10) for n in peval_sat(x_fit_sat_2, fitted_para_sat,fitted_para_cen,10**12.65)]
+plt.plot(x_fit_sat_2,y_fit_plot_sat,color='black')
+plt.xlim(7.5, 12)
+plt.xlabel(r'$\log[L/(h^{-2}L_{\bigodot})])$',fontsize=15)
+plt.ylabel(r'$\log(\Phi(L) d\log L / group)$',fontsize=15)
+plt.title(label)
+plt.savefig('plots/clf_sat_fit_bin2.png')
+plt.close()
+
+label = '12.9'+r'$ < M_{h}  \leq $' + '13.2'
+plt.errorbar(x_sat_3,y_sat_3, yerr=yerr_sat_3, capsize=4, ls='none', color='red', elinewidth=2,marker='o',markerfacecolor='red')
+x_fit_sat_3 = np.arange(x_sat_3[-len(x_sat_3)]-0.1,x_sat_3[-1]+0.1,0.05)
+y_fit_plot_sat = [log(n,10) for n in peval_sat(x_fit_sat_3, fitted_para_sat,fitted_para_cen,10**13.05)]
+plt.plot(x_fit_sat_3,y_fit_plot_sat,color='black')
+plt.xlim(7.5, 12)
+plt.xlabel(r'$\log[L/(h^{-2}L_{\bigodot})])$',fontsize=15)
+plt.ylabel(r'$\log(\Phi(L) d\log L / group)$',fontsize=15)
+plt.title(label)
+plt.savefig('plots/clf_sat_fit_bin3.png')
+plt.close()
+
+label = '13.3'+r'$ < M_{h}  \leq $' + '13.6'
+plt.errorbar(x_sat_4,y_sat_4, yerr=yerr_sat_4, capsize=4, ls='none', color='red', elinewidth=2,marker='o',markerfacecolor='red')
+x_fit_sat_4 = np.arange(x_sat_4[-len(x_sat_4)]-0.1,x_sat_4[-1]+0.1,0.05)
+y_fit_plot_sat = [log(n,10) for n in peval_sat(x_fit_sat_4, fitted_para_sat,fitted_para_cen,10**13.45)]
+plt.plot(x_fit_sat_4,y_fit_plot_sat,color='black')
+plt.xlim(7.5, 12)
+plt.xlabel(r'$\log[L/(h^{-2}L_{\bigodot})])$',fontsize=15)
+plt.ylabel(r'$\log(\Phi(L) d\log L / group)$',fontsize=15)
+plt.title(label)
+plt.savefig('plots/clf_sat_fit_bin4.png')
+plt.close()
+
+label = '13.7'+r'$ < M_{h}  \leq $' + '14.0'
+plt.errorbar(x_sat_5,y_sat_5, yerr=yerr_sat_5, capsize=4, ls='none', color='red', elinewidth=2,marker='o',markerfacecolor='red')
+x_fit_sat_5 = np.arange(x_sat_5[-len(x_sat_5)]-0.1,x_sat_5[-1]+0.1,0.05)
+y_fit_plot_sat = [log(n,10) for n in peval_sat(x_fit_sat_5, fitted_para_sat,fitted_para_cen,10**13.85)]
+plt.plot(x_fit_sat_5,y_fit_plot_sat,color='black')
+plt.xlim(7.5, 12)
+plt.xlabel(r'$\log[L/(h^{-2}L_{\bigodot})])$',fontsize=15)
+plt.ylabel(r'$\log(\Phi(L) d\log L / group)$',fontsize=15)
+plt.title(label)
+plt.savefig('plots/clf_sat_fit_bin5.png')
+plt.close()
+
+label = '14.1'+r'$ < M_{h}  \leq $' + '14.4'
+plt.errorbar(x_sat_6,y_sat_6, yerr=yerr_sat_6, capsize=4, ls='none', color='red', elinewidth=2,marker='o',markerfacecolor='red')
+x_fit_sat_6 = np.arange(x_sat_6[-len(x_sat_6)]-0.1,x_sat_6[-1]+0.1,0.05)
+y_fit_plot_sat = [log(n,10) for n in peval_sat(x_fit_sat_6, fitted_para_sat,fitted_para_cen,10**14.25)]
+plt.plot(x_fit_sat_6,y_fit_plot_sat,color='black')
+plt.xlim(7.5, 12)
+plt.xlabel(r'$\log[L/(h^{-2}L_{\bigodot})])$',fontsize=15)
+plt.ylabel(r'$\log(\Phi(L) d\log L / group)$',fontsize=15)
+plt.title(label)
+plt.savefig('plots/clf_sat_fit_bin6.png')
+plt.close()
+	
+
+
+
+
+
+
+
+
+"""
+label = str(Mhost_min)+r'$ < M_{h}  \leq $' + str(Mhost_max)
+
+plot_cen = plt.errorbar(x_cen,y_cen, yerr=yerr_cen, capsize=4, ls='none', color='red', elinewidth=2,marker='o',markerfacecolor='red')
+x_fit_cen = np.arange(x_cen[-len(x_cen)]-0.1,x_cen[-1]+0.1,0.05)
+y_fit_plot_cen = [log(n,10) for n in peval(x_fit_cen, plsq[0],M)]
+plt.plot(x_fit_cen,y_fit_plot_cen,color='black')
+"""
+
+"""
+plot_sat = plt.errorbar(x_sat,y_sat, yerr=yerr_sat, capsize=4, ls='none', color='blue', elinewidth=2,marker='s',markerfacecolor='blue')
+x_fit_sat = np.arange(x_sat[-len(x_sat)]-0.1,x_sat[-1]+0.1,0.05)
+y_fit_plot_sat = [log(n,10) for n in peval_sat(x_fit_sat, plsq_sat[0])]
+plt.plot(x_fit_sat,y_fit_plot_sat,color='black')
+"""
+
+"""
+plt.xlim(7.5, 12)
+plt.xlabel(r'$\log[L/(h^{-2}L_{\bigodot})])$',fontsize=15)
+plt.ylabel(r'$\log(\Phi(L) d\log L / group)$',fontsize=15)
+plt.title(label)
+#plt.legend([plot_cen,plot_sat],[r'$\chi_{cen}^{2}=$'+str(round(chi2_cen,3)), r'$\chi_{sat}^{2}$='+str(round(chi2_sat,3))], loc='upper left')
 plt.show()
+"""
 
 
 
 
+
+"""
+CLF and Jackknife computation 
+"""
+"""
+# Computing the CLF and its Jackknife errors - Central galaxies
+Phi_cen,L_bins = CLF(M_cen,L_bins,dL,Mhost_min,Mhost_max,Mhost_cen)
+errors = jackknife_errors_CLF(pos_cen,Phi_cen,Ndivs,Lbox,M_cen,L_bins,dL,Mhost_min,Mhost_max,Mhost_cen)
+y_cen = [log(i,10) for i in Phi_cen if i>0]
+x_cen = [L_bins[i]+dL/2 for i in range(len(L_bins)-1) if Phi_cen[i]>0]
+delta_y_cen = [errors[i] for i in range(len(L_bins)-1) if Phi_cen[i]>0]
+yerr_cen = [i/(10**j) for i,j in zip(delta_y_cen,y_cen)]
+"""
+
+"""
+# Computing the CLF and its Jackknife errors - Satellite galaxies
+Phi_sat,L_bins = CLF(M_sat,L_bins,dL,Mhost_min,Mhost_max,Mhost_sat)
+errors = jackknife_errors_CLF(pos_sat,Phi_sat,Ndivs,Lbox,M_sat,L_bins,dL,Mhost_min,Mhost_max,Mhost_sat)
+y_sat = [log(i,10) for i in Phi_sat if i>0]
+x_sat = [L_bins[i]+dL/2 for i in range(len(L_bins)-1) if Phi_sat[i]>0]
+delta_y_sat = [errors[i] for i in range(len(L_bins)-1) if Phi_sat[i]>0]
+yerr_sat = [i/(10**j) for i,j in zip(delta_y_sat,y_sat)]
+"""    
 
 
 
